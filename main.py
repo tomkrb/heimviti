@@ -37,7 +37,7 @@ _yr = YrService(
 )
 
 _atb = AtbService(
-    stop_id=secret_loader.get_secret("HOME_STOP_ID", "NSR:StopPlace:41613"),
+    stop_id=secret_loader.get_secret("HOME_STOP_ID", "NSR:StopPlace:43975"),
 )
 
 _tibber = TibberService(
@@ -47,6 +47,8 @@ _tibber = TibberService(
 _audi = AudiService(
     username=secret_loader.get_secret("AUDI_USERNAME", ""),
     password=secret_loader.get_secret("AUDI_PASSWORD", ""),
+    home_lat=float(secret_loader.get_secret("HOME_LAT", "63.4305")),
+    home_lon=float(secret_loader.get_secret("HOME_LON", "10.3951")),
 )
 
 _calendar_ids_raw = secret_loader.get_secret("CALENDAR_IDS", "")
