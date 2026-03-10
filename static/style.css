@@ -1,0 +1,94 @@
+/* Heimviti – dashboard stylesheet */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem 1.5rem;
+  border-bottom: 1px solid #1e293b;
+  margin-bottom: 1.5rem;
+}
+
+header h1 { font-size: 1.5rem; font-weight: 700; }
+
+#last-updated { font-size: 0.8rem; color: #64748b; }
+
+/* Responsive 2-column grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.card h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.card-body { font-size: 0.95rem; }
+
+.loading { color: #64748b; font-style: italic; }
+
+.error { color: #f87171; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+
+th, td {
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #334155;
+}
+
+thead th { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; }
+
+tr:last-child td { border-bottom: none; }
+
+tr.cancelled td { text-decoration: line-through; color: #64748b; }
+
+/* Tags */
+.rt {
+  background: #22c55e;
+  color: #fff;
+  font-size: 0.65rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.tag-cancelled {
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.65rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.vin { color: #64748b; font-size: 0.8rem; margin-bottom: 0.75rem; }
+
+/* Responsive tweaks */
+@media (max-width: 480px) {
+  header h1 { font-size: 1.2rem; }
+  .card { padding: 1rem; }
+}

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Heimviti – Home Status</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>🏠 Heimviti</h1>
+    <span id="last-updated"></span>
+  </header>
+
+  <main class="grid">
+
+    <!-- Weather widget -->
+    <section class="card" id="card-weather">
+      <h2>🌤 Weather</h2>
+      <div class="card-body" id="weather-body">
+        <div class="loading">Loading…</div>
+      </div>
+    </section>
+
+    <!-- Bus departures widget -->
+    <section class="card" id="card-bus">
+      <h2>🚌 Bus Departures</h2>
+      <div class="card-body" id="bus-body">
+        <div class="loading">Loading…</div>
+      </div>
+    </section>
+
+    <!-- Energy widget -->
+    <section class="card" id="card-energy">
+      <h2>⚡ Energy (Tibber)</h2>
+      <div class="card-body" id="energy-body">
+        <div class="loading">Loading…</div>
+      </div>
+    </section>
+
+    <!-- Car widget -->
+    <section class="card" id="card-car">
+      <h2>🚗 Car (Audi)</h2>
+      <div class="card-body" id="car-body">
+        <div class="loading">Loading…</div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ---------------------------------------------------------------------------
+    // Helper
+    // ---------------------------------------------------------------------------
+    function esc(str) {
+      return String(str ?? "–")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    async function fetchJSON(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+
+    function setBody(id, html) {
+      document.getElementById(id).innerHTML = html;
+    }
+
+    function errorHTML(msg) {
+      return `<p class="error">⚠ ${esc(msg)}</p>`;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Weather
+    // ---------------------------------------------------------------------------
+    async function loadWeather() {
+      try {
+        const { ok, data, error } = await fetchJSON("/api/weather");
+        if (!ok) { setBody("weather-body", errorHTML(error)); return; }
+        setBody("weather-body", `
+          <table>
+            <tr><td>Temperature</td><td>${esc(data.air_temperature)} °C</td></tr>
+            <tr><td>Wind</td><td>${esc(data.wind_speed)} m/s</td></tr>
+            <tr><td>Humidity</td><td>${esc(data.relative_humidity)} %</td></tr>
+            <tr><td>Condition</td><td>${esc(data.symbol_code)}</td></tr>
+          </table>`);
+      } catch (e) { setBody("weather-body", errorHTML(e.message)); }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Bus
+    // ---------------------------------------------------------------------------
+    function fmtTime(iso) {
+      if (!iso) return "–";
+      return new Date(iso).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    async function loadBus() {
+      try {
+        const { ok, data, error } = await fetchJSON("/api/bus");
+        if (!ok) { setBody("bus-body", errorHTML(error)); return; }
+        if (!data.length) { setBody("bus-body", "<p>No departures found.</p>"); return; }
+        const rows = data.map(d => `
+          <tr class="${d.cancelled ? 'cancelled' : ''}">
+            <td><strong>${esc(d.line)}</strong></td>
+            <td>${esc(d.destination)}</td>
+            <td>${fmtTime(d.expected_departure)}${d.realtime ? ' <span class="rt">RT</span>' : ''}</td>
+            ${d.cancelled ? '<td><span class="tag-cancelled">CANCELLED</span></td>' : '<td></td>'}
+          </tr>`).join("");
+        setBody("bus-body", `<table><thead><tr><th>Line</th><th>Destination</th><th>Departure</th><th></th></tr></thead><tbody>${rows}</tbody></table>`);
+      } catch (e) { setBody("bus-body", errorHTML(e.message)); }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Energy
+    // ---------------------------------------------------------------------------
+    async function loadEnergy() {
+      try {
+        const { ok, data, error } = await fetchJSON("/api/energy");
+        if (!ok) { setBody("energy-body", errorHTML(error)); return; }
+        if (data.error) { setBody("energy-body", errorHTML(data.error)); return; }
+        const cp = data.current_price ?? {};
+        const consumption = data.consumption_24h ?? [];
+        const totalKwh = consumption.reduce((s, n) => s + (n.consumption ?? 0), 0);
+        const totalCost = consumption.reduce((s, n) => s + (n.cost ?? 0), 0);
+        setBody("energy-body", `
+          <table>
+            <tr><td>Current price</td><td>${esc(cp.total)} ${esc(cp.currency)}/kWh</td></tr>
+            <tr><td>Price level</td><td>${esc(cp.level)}</td></tr>
+            <tr><td>Last 24 h usage</td><td>${totalKwh.toFixed(2)} kWh</td></tr>
+            <tr><td>Last 24 h cost</td><td>${totalCost.toFixed(2)} ${esc(cp.currency)}</td></tr>
+          </table>`);
+      } catch (e) { setBody("energy-body", errorHTML(e.message)); }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Car
+    // ---------------------------------------------------------------------------
+    async function loadCar() {
+      try {
+        const { ok, data, error } = await fetchJSON("/api/car");
+        if (!ok) { setBody("car-body", errorHTML(error)); return; }
+        if (data.error) { setBody("car-body", errorHTML(data.error)); return; }
+
+        // Show VIN + a curated subset of known Audi field IDs
+        const knownFields = {
+          "0x0301030005": "Odometer",
+          "0x030103000A": "Range",
+          "0x0301030002": "Fuel level",
+          "0x0301010001": "Parking brake",
+          "0x0301040001": "Doors",
+          "0x030104000A": "Trunk",
+          "0x030104000D": "Hood",
+          "0x0301050001": "Windows",
+          "0x0301060001": "Lights",
+        };
+
+        const rows = Object.entries(knownFields)
+          .filter(([id]) => data[id] !== undefined)
+          .map(([id, label]) => `<tr><td>${esc(label)}</td><td>${esc(data[id])}</td></tr>`)
+          .join("");
+
+        setBody("car-body", `
+          <p class="vin">VIN: ${esc(data.vin)}</p>
+          <table>${rows || "<tr><td colspan='2'>No data available</td></tr>"}</table>`);
+      } catch (e) { setBody("car-body", errorHTML(e.message)); }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Bootstrap
+    // ---------------------------------------------------------------------------
+    function refresh() {
+      loadWeather();
+      loadBus();
+      loadEnergy();
+      loadCar();
+      document.getElementById("last-updated").textContent =
+        "Updated: " + new Date().toLocaleTimeString("nb-NO");
+    }
+
+    refresh();
+    setInterval(refresh, 60_000);  // auto-refresh every minute
+  </script>
+</body>
+</html>
