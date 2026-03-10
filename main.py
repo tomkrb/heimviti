@@ -5,6 +5,7 @@ Collects data from:
 - AtB / EnTur         (bus departures)
 - Tibber              (electricity prices & consumption)
 - Audi Connect        (car status)
+- Google Calendar     (upcoming events)
 
 Deployed on Google App Engine; protected by Google Cloud IAP.
 """
@@ -17,6 +18,7 @@ from flask import Flask, jsonify, render_template
 import secret_loader
 from services.atb import AtbService
 from services.audi import AudiService
+from services.calendar import CalendarService
 from services.tibber import TibberService
 from services.yr import YrService
 
@@ -47,6 +49,12 @@ _audi = AudiService(
     password=secret_loader.get_secret("AUDI_PASSWORD", ""),
     home_lat=float(secret_loader.get_secret("HOME_LAT", "63.4305")),
     home_lon=float(secret_loader.get_secret("HOME_LON", "10.3951")),
+)
+
+_calendar_ids_raw = secret_loader.get_secret("CALENDAR_IDS", "")
+_calendar = CalendarService(
+    calendar_ids=[cid.strip() for cid in _calendar_ids_raw.split(",") if cid.strip()],
+    api_key=secret_loader.get_secret("GOOGLE_API_KEY", ""),
 )
 
 
@@ -102,6 +110,17 @@ def api_car():
         return jsonify({"ok": True, "data": data})
     except Exception as exc:  # pylint: disable=broad-except
         logger.exception("Audi fetch failed")
+        return jsonify({"ok": False, "error": str(exc)}), 502
+
+
+@app.route("/api/calendar")
+def api_calendar():
+    """JSON endpoint – Google Calendar events for today and tomorrow."""
+    try:
+        data = _calendar.get_events()
+        return jsonify({"ok": True, "data": data})
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.exception("Calendar fetch failed")
         return jsonify({"ok": False, "error": str(exc)}), 502
 
 

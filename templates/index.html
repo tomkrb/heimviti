@@ -46,6 +46,14 @@
       </div>
     </section>
 
+    <!-- Calendar widget -->
+    <section class="card" id="card-calendar">
+      <h2>📅 Calendar</h2>
+      <div class="card-body" id="calendar-body">
+        <div class="loading">Loading…</div>
+      </div>
+    </section>
+
   </main>
 
   <script>
@@ -197,6 +205,55 @@
     }
 
     // ---------------------------------------------------------------------------
+    // Calendar
+    // ---------------------------------------------------------------------------
+    function fmtEventTime(iso, allDay) {
+      if (allDay) return "All day";
+      if (!iso) return "–";
+      return new Date(iso).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function dayLabel(iso, allDay) {
+      const d = allDay ? new Date(iso + "T00:00:00") : new Date(iso);
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      if (d.toDateString() === today.toDateString()) return "Today";
+      if (d.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+      return d.toLocaleDateString("nb-NO", { weekday: "long", month: "short", day: "numeric" });
+    }
+
+    async function loadCalendar() {
+      try {
+        const { ok, data, error } = await fetchJSON("/api/calendar");
+        if (!ok) { setBody("calendar-body", errorHTML(error)); return; }
+        if (!data.length) { setBody("calendar-body", "<p>No events today or tomorrow.</p>"); return; }
+
+        // Group by day label, preserving insertion order via Map
+        const groups = new Map();
+        for (const ev of data) {
+          const label = dayLabel(ev.start, ev.all_day);
+          if (!groups.has(label)) groups.set(label, []);
+          groups.get(label).push(ev);
+        }
+
+        let html = "";
+        for (const [day, events] of groups) {
+          html += `<p class="cal-day">${esc(day)}</p><table>`;
+          for (const ev of events) {
+            const timeStr = fmtEventTime(ev.start, ev.all_day);
+            html += `<tr>
+              <td class="cal-time">${esc(timeStr)}</td>
+              <td>${esc(ev.summary || "(no title)")}</td>
+            </tr>`;
+          }
+          html += `</table>`;
+        }
+        setBody("calendar-body", html);
+      } catch (e) { setBody("calendar-body", errorHTML(e.message)); }
+    }
+
+    // ---------------------------------------------------------------------------
     // Bootstrap
     // ---------------------------------------------------------------------------
     function refresh() {
@@ -204,6 +261,7 @@
       loadBus();
       loadEnergy();
       loadCar();
+      loadCalendar();
       document.getElementById("last-updated").textContent =
         "Updated: " + new Date().toLocaleTimeString("nb-NO");
     }
