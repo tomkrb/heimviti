@@ -40,7 +40,7 @@
 
     <!-- Car widget -->
     <section class="card" id="card-car">
-      <h2>🚗 Car (Audi)</h2>
+      <h2>🚗 Car (Audi) <span id="car-location-badge"></span></h2>
       <div class="card-body" id="car-body">
         <div class="loading">Loading…</div>
       </div>
@@ -156,7 +156,19 @@
         const chargingSettings = data["charging.chargingSettings"] || {};
         const plugStatus = data["charging.plugStatus"] || {};
 
+        // Location badge (Heime / Borte)
+        const locStatus = data.location_status;
+        const badge = document.getElementById("car-location-badge");
+        if (locStatus === "Heime") {
+          badge.innerHTML = '<span class="loc-heime">🏠 Heime</span>';
+        } else if (locStatus === "Borte") {
+          badge.innerHTML = '<span class="loc-borte">🚘 Borte</span>';
+        } else {
+          badge.innerHTML = "";
+        }
+
         const rows = [
+          ["Location", locStatus ? esc(locStatus) : "–"],
           ["Overall status", safeVal(access.overallStatus)],
           ["Door lock", safeVal(access.doorLockStatus)],
           ["Battery", batteryStatus.currentSOC_pct !== undefined ? `${batteryStatus.currentSOC_pct} %` : "–"],

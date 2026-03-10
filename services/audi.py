@@ -13,6 +13,7 @@ import base64
 import hmac
 import json
 import logging
+import math
 import os
 import re
 import time
@@ -29,6 +30,22 @@ logger = logging.getLogger(__name__)
 
 # Cache TTL for status responses
 _CACHE_TTL = 120  # seconds
+
+# ---------------------------------------------------------------------------
+# Home location – Trollahaugen 28, 7018 Trondheim, Norway
+# ---------------------------------------------------------------------------
+_HOME_LAT = 63.4305  # default; override via AudiService(home_lat=...)
+_HOME_LON = 10.3951  # default; override via AudiService(home_lon=...)
+_HOME_RADIUS_KM = 0.5  # car is considered "home" if within this radius
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Return the great-circle distance in km between two WGS-84 points."""
+    r = 6371.0
+    d_lat = math.radians(lat2 - lat1)
+    d_lon = math.radians(lon2 - lon1)
+    a = math.sin(d_lat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(d_lon / 2) ** 2
+    return r * 2 * math.asin(math.sqrt(a))
 
 # ---------------------------------------------------------------------------
 # Audi Connect API endpoints (market: "de" for generic European access)
@@ -49,9 +66,17 @@ class AudiService:
     environment (or `.env`) and falls back to the password grant flow.
     """
 
-    def __init__(self, username: str, password: str) -> None:
+    def __init__(
+        self,
+        username: str,
+        password: str,
+        home_lat: float = _HOME_LAT,
+        home_lon: float = _HOME_LON,
+    ) -> None:
         self._username = username
         self._password = password
+        self._home_lat = home_lat
+        self._home_lon = home_lon
         self._access_token: str | None = None
         self._token_expiry: float = 0.0
         self._country = os.environ.get("AUDI_COUNTRY", "DE")
@@ -528,6 +553,7 @@ class AudiService:
             "lvBattery",
             "measurements",
             "oilLevel",
+            "parking",
             "readiness",
             "vehicleHealthInspection",
             "vehicleHealthWarnings",
@@ -563,6 +589,7 @@ class AudiService:
                     unit = field.get("unit", "")
                     if fid:
                         fields[fid] = f"{value} {unit}".strip() if unit else value
+            fields["location_status"] = self._compute_location_status(fields)
             return fields
 
         # Cariad BFF format: top-level sections with nested `value` fields
@@ -572,7 +599,41 @@ class AudiService:
             for key, val in section_val.items():
                 if isinstance(val, dict) and "value" in val:
                     fields[f"{section_key}.{key}"] = val.get("value")
+        fields["location_status"] = self._compute_location_status(fields)
         return fields
+
+    def _compute_location_status(self, fields: dict[str, Any]) -> str | None:
+        """Return 'Heime' if the car is near home, 'Borte' if not, None if unknown."""
+        lat: float | None = None
+        lon: float | None = None
+
+        # Cariad BFF format: parking.parkingPosition -> {"carCoordinate": {"latitude": ..., "longitude": ...}}
+        parking_pos = fields.get("parking.parkingPosition")
+        if isinstance(parking_pos, dict):
+            coord = parking_pos.get("carCoordinate", {})
+            try:
+                lat = float(coord["latitude"])
+                lon = float(coord["longitude"])
+            except (KeyError, TypeError, ValueError):
+                pass
+
+        # Legacy format: field IDs 0x0301061001 (lat) / 0x0301061002 (lon)
+        # Values are stored as strings and may include a unit suffix; strip it.
+        if lat is None:
+            raw_lat = fields.get("0x0301061001")
+            raw_lon = fields.get("0x0301061002")
+            if raw_lat is not None and raw_lon is not None:
+                try:
+                    lat = float(str(raw_lat).split()[0])
+                    lon = float(str(raw_lon).split()[0])
+                except (ValueError, IndexError):
+                    pass
+
+        if lat is None or lon is None:
+            return None
+
+        dist_km = _haversine_km(lat, lon, self._home_lat, self._home_lon)
+        return "Heime" if dist_km <= _HOME_RADIUS_KM else "Borte"
 
     # ------------------------------------------------------------------
     # Vendor-based fallback implementation

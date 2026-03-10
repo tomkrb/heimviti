@@ -45,6 +45,8 @@ _tibber = TibberService(
 _audi = AudiService(
     username=secret_loader.get_secret("AUDI_USERNAME", ""),
     password=secret_loader.get_secret("AUDI_PASSWORD", ""),
+    home_lat=float(secret_loader.get_secret("HOME_LAT", "63.4305")),
+    home_lon=float(secret_loader.get_secret("HOME_LON", "10.3951")),
 )
 
 

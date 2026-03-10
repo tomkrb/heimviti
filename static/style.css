@@ -87,6 +87,28 @@ tr.cancelled td { text-decoration: line-through; color: #64748b; }
 
 .vin { color: #64748b; font-size: 0.8rem; margin-bottom: 0.75rem; }
 
+/* Car location badge (Heime / Borte) */
+.loc-heime, .loc-borte {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  vertical-align: middle;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.loc-heime {
+  background: #166534;
+  color: #86efac;
+}
+
+.loc-borte {
+  background: #7c2d12;
+  color: #fdba74;
+}
+
 .raw-json {
   margin-top: 0.75rem;
   font-size: 0.85rem;
