@@ -101,6 +101,27 @@ class TestApiCar:
         assert data["ok"] is False
 
 
+class TestApiCalendar:
+    @patch.object(
+        main._calendar,
+        "get_events",
+        return_value=[{"summary": "Team meeting", "start": "2024-06-01T10:00:00+00:00"}],
+    )
+    def test_calendar_success(self, mock_cal, client):
+        resp = client.get("/api/calendar")
+        data = json.loads(resp.data)
+        assert resp.status_code == 200
+        assert data["ok"] is True
+        assert data["data"][0]["summary"] == "Team meeting"
+
+    @patch.object(main._calendar, "get_events", side_effect=Exception("api error"))
+    def test_calendar_error(self, mock_cal, client):
+        resp = client.get("/api/calendar")
+        data = json.loads(resp.data)
+        assert resp.status_code == 502
+        assert data["ok"] is False
+
+
 class TestIndex:
     def test_index_returns_html(self, client):
         resp = client.get("/")

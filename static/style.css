@@ -87,6 +87,25 @@ tr.cancelled td { text-decoration: line-through; color: #64748b; }
 
 .vin { color: #64748b; font-size: 0.8rem; margin-bottom: 0.75rem; }
 
+/* Calendar widget */
+.cal-day {
+  font-weight: 600;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.cal-day:first-child { margin-top: 0; }
+
+.cal-time {
+  white-space: nowrap;
+  color: #64748b;
+  font-size: 0.85rem;
+  width: 6rem;
+}
+
 .raw-json {
   margin-top: 0.75rem;
   font-size: 0.85rem;
