@@ -133,6 +133,77 @@ Browse to http://localhost:8080.
 
 ## Deploying to Google App Engine
 
+### Automatic deployment (CI/CD)
+
+Every merge to `main` triggers the GitHub Actions workflow, which runs the test
+suite and — on success — deploys automatically to App Engine.
+
+The workflow uses **Workload Identity Federation** (keyless auth) to authenticate
+to Google Cloud.  Before the first deployment, configure the following GitHub
+repository secrets:
+
+| Secret | Description |
+|--------|-------------|
+| `GCP_PROJECT_ID` | Your Google Cloud project ID |
+| `WIF_PROVIDER` | Workload Identity provider resource name, e.g. `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID` |
+| `WIF_SERVICE_ACCOUNT` | Service account email that the workflow impersonates, e.g. `github-deployer@PROJECT_ID.iam.gserviceaccount.com` |
+
+**One-time GCP setup for Workload Identity Federation:**
+
+1. Enable required APIs:
+   ```bash
+   gcloud services enable iamcredentials.googleapis.com \
+     cloudresourcemanager.googleapis.com \
+     appengineflex.googleapis.com appengine.googleapis.com
+   ```
+
+2. Create a Workload Identity pool and GitHub OIDC provider:
+   ```bash
+   PROJECT_ID=$(gcloud config get-value project)
+   PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
+
+   gcloud iam workload-identity-pools create "github-actions" \
+     --location="global" --display-name="GitHub Actions"
+
+   gcloud iam workload-identity-pools providers create-oidc "github" \
+     --location="global" \
+     --workload-identity-pool="github-actions" \
+     --display-name="GitHub" \
+     --issuer-uri="https://token.actions.githubusercontent.com" \
+     --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+     --attribute-condition="attribute.repository=='YOUR_GITHUB_ORG/heimviti'"
+     # Replace YOUR_GITHUB_ORG with your actual GitHub organization or username
+   ```
+
+3. Create a service account and grant it the App Engine deployer roles:
+   ```bash
+   gcloud iam service-accounts create "github-deployer" \
+     --display-name="GitHub Actions deployer"
+
+   for ROLE in roles/appengine.appAdmin roles/storage.admin \
+               roles/cloudbuild.builds.editor roles/iam.serviceAccountUser; do
+     gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+       --member="serviceAccount:github-deployer@${PROJECT_ID}.iam.gserviceaccount.com" \
+       --role="$ROLE"
+   done
+   ```
+
+4. Allow the Workload Identity pool to impersonate the service account:
+   ```bash
+   POOL_NAME="projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-actions"
+
+   gcloud iam service-accounts add-iam-policy-binding \
+     "github-deployer@${PROJECT_ID}.iam.gserviceaccount.com" \
+     --role="roles/iam.workloadIdentityUser" \
+     --member="principalSet://iam.googleapis.com/${POOL_NAME}/attribute.repository/YOUR_GITHUB_ORG/heimviti"
+     # Replace YOUR_GITHUB_ORG with your actual GitHub organization or username
+   ```
+
+5. Copy the provider resource name and service account email into the GitHub
+   repository secrets listed in the table above.
+
+### Manual deployment
+
 ```bash
 # Enable IAP in Google Cloud Console first, then:
 gcloud app deploy
