@@ -14,6 +14,7 @@ import os
 
 from flask import Flask, jsonify, render_template
 
+import secret_loader
 from services.atb import AtbService
 from services.audi import AudiService
 from services.tibber import TibberService
@@ -29,21 +30,21 @@ app = Flask(__name__)
 # ---------------------------------------------------------------------------
 
 _yr = YrService(
-    lat=float(os.environ.get("YR_LAT", "63.4305")),
-    lon=float(os.environ.get("YR_LON", "10.3951")),
+    lat=float(secret_loader.get_secret("YR_LAT", "63.4305")),
+    lon=float(secret_loader.get_secret("YR_LON", "10.3951")),
 )
 
 _atb = AtbService(
-    stop_id=os.environ.get("HOME_STOP_ID", "NSR:StopPlace:41613"),
+    stop_id=secret_loader.get_secret("HOME_STOP_ID", "NSR:StopPlace:41613"),
 )
 
 _tibber = TibberService(
-    token=os.environ.get("TIBBER_TOKEN", ""),
+    token=secret_loader.get_secret("TIBBER_TOKEN", ""),
 )
 
 _audi = AudiService(
-    username=os.environ.get("AUDI_USERNAME", ""),
-    password=os.environ.get("AUDI_PASSWORD", ""),
+    username=secret_loader.get_secret("AUDI_USERNAME", ""),
+    password=secret_loader.get_secret("AUDI_PASSWORD", ""),
 )
 
 

@@ -7,15 +7,10 @@ automatic_scaling:
   max_instances: 2
 
 env_variables:
-  # Set these in the App Engine environment or via Secret Manager
-  TIBBER_TOKEN: ""
-  AUDI_USERNAME: ""
-  AUDI_PASSWORD: ""
-  # Stop latitude/longitude for ATB bus departures (Trondheim default)
-  HOME_STOP_ID: ""
-  # Location for yr.no weather (Trondheim default)
-  YR_LAT: "63.4305"
-  YR_LON: "10.3951"
+  # GCP project ID used by the Secret Manager client.
+  # App Engine sets GOOGLE_CLOUD_PROJECT automatically; keep this as an
+  # explicit override in case you deploy from a different project.
+  GOOGLE_CLOUD_PROJECT: ""
 
 handlers:
   - url: /static
@@ -28,3 +23,8 @@ handlers:
 
 # IAP configuration (enable in Google Cloud Console):
 # gcloud app update --iap-enabled
+#
+# Secret Manager setup:
+# All runtime secrets (TIBBER_TOKEN, AUDI_USERNAME, AUDI_PASSWORD,
+# HOME_STOP_ID, YR_LAT, YR_LON) are stored in Google Cloud Secret Manager.
+# See README.md for the full setup steps.
