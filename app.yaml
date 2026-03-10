@@ -19,6 +19,8 @@ handlers:
 # gcloud app update --iap-enabled
 #
 # Secret Manager setup:
-# All runtime secrets (TIBBER_TOKEN, AUDI_USERNAME, AUDI_PASSWORD,
-# HOME_STOP_ID, YR_LAT, YR_LON) are stored in Google Cloud Secret Manager.
+# All runtime secrets are stored in Google Cloud Secret Manager.
+# Required secrets: TIBBER_TOKEN, AUDI_USERNAME, AUDI_PASSWORD,
+# HOME_STOP_ID, YR_LAT, YR_LON, HOME_LAT, HOME_LON,
+# GOOGLE_API_KEY, CALENDAR_IDS
 # See README.md for the full setup steps.
