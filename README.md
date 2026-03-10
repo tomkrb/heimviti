@@ -51,7 +51,7 @@ All sensitive values are kept **out of the repository** and loaded at runtime:
 | `TIBBER_TOKEN` | Personal access token from [developer.tibber.com](https://developer.tibber.com/settings/access-token) |
 | `AUDI_USERNAME` | myAudi account e-mail |
 | `AUDI_PASSWORD` | myAudi account password |
-| `HOME_STOP_ID` | NSR stop-place ID for your nearest bus stop (e.g. `NSR:StopPlace:41613`) |
+| `HOME_STOP_ID` | NSR stop-place ID for your nearest bus stop (e.g. `NSR:StopPlace:43975` for Trollahaugen 10, Trondheim) |
 | `YR_LAT` | Latitude of your location (e.g. `63.4305`) |
 | `YR_LON` | Longitude of your location (e.g. `10.3951`) |
 

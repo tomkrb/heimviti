@@ -8,8 +8,8 @@ from services.atb import AtbService, _CACHE_TTL
 SAMPLE_RESPONSE = {
     "data": {
         "stopPlace": {
-            "id": "NSR:StopPlace:41613",
-            "name": "Prinsens gate",
+            "id": "NSR:StopPlace:43975",
+            "name": "Trollahaugen 10",
             "estimatedCalls": [
                 {
                     "realtime": True,
@@ -50,7 +50,7 @@ def _make_response(data: dict) -> MagicMock:
 
 class TestAtbService:
     def setup_method(self):
-        self.svc = AtbService(stop_id="NSR:StopPlace:41613", number_of_departures=5)
+        self.svc = AtbService(stop_id="NSR:StopPlace:43975", number_of_departures=5)
 
     @patch("services.atb.requests.post")
     def test_get_departures_returns_list(self, mock_post):
