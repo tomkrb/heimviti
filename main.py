@@ -35,7 +35,7 @@ _yr = YrService(
 )
 
 _atb = AtbService(
-    stop_id=secret_loader.get_secret("HOME_STOP_ID", "NSR:StopPlace:41613"),
+    stop_id=secret_loader.get_secret("HOME_STOP_ID", "NSR:StopPlace:43975"),
 )
 
 _tibber = TibberService(
