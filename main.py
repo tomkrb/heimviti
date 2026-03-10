@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # ---------------------------------------------------------------------------
-# Service singletons (lazy-initialised per request when needed)
+# Service singletons – constructed at startup (secrets loaded once here)
 # ---------------------------------------------------------------------------
 
 _yr = YrService(

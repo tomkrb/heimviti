@@ -6,8 +6,8 @@ Secrets are fetched at startup from **Google Cloud Secret Manager**.
 The application's service account must have the
 ``roles/secretmanager.secretAccessor`` IAM role, and the
 ``GOOGLE_CLOUD_PROJECT`` environment variable must be set to the GCP
-project ID (App Engine sets this automatically via the ``GAE_APPLICATION``
-variable, but ``GOOGLE_CLOUD_PROJECT`` is the canonical way to specify it).
+project ID.  App Engine and Cloud Run set this variable automatically;
+do **not** override it with an empty string in ``app.yaml``.
 
 Local development
 -----------------

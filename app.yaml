@@ -6,12 +6,6 @@ automatic_scaling:
   min_instances: 0
   max_instances: 2
 
-env_variables:
-  # GCP project ID used by the Secret Manager client.
-  # App Engine sets GOOGLE_CLOUD_PROJECT automatically; keep this as an
-  # explicit override in case you deploy from a different project.
-  GOOGLE_CLOUD_PROJECT: ""
-
 handlers:
   - url: /static
     static_dir: static
