@@ -6,7 +6,7 @@ Home status dashboard including car, power, bus and weather.
 **Heimviti** is a Python/Flask web application deployed on **Google App Engine**
 and protected by **Google Cloud IAP** (Identity-Aware Proxy).
 
-It aggregates data from four sources into a single auto-refreshing dashboard:
+It aggregates data from five sources into a single auto-refreshing dashboard:
 
 | Widget | Source | API |
 |--------|--------|-----|
@@ -14,6 +14,7 @@ It aggregates data from four sources into a single auto-refreshing dashboard:
 | 🚌 Bus departures | AtB / EnTur | [Journey Planner v3 GraphQL](https://api.entur.io/) |
 | ⚡ Energy prices & usage | Tibber | [Tibber GraphQL API](https://developer.tibber.com/) |
 | 🚗 Car status | Audi Connect | myAudi Connect REST API |
+| 📅 Calendar events | Google Calendar | [Calendar API v3](https://developers.google.com/calendar/api) |
 
 ## Project structure
 
@@ -28,7 +29,8 @@ heimviti/
 │   ├── yr.py            # yr.no / api.met.no weather service
 │   ├── atb.py           # AtB bus departures via EnTur
 │   ├── tibber.py        # Tibber energy prices & consumption
-│   └── audi.py          # Audi Connect car status
+│   ├── audi.py          # Audi Connect car status
+│   └── calendar.py      # Google Calendar events
 ├── templates/
 │   └── index.html       # Dashboard UI (auto-refreshes every 60 s)
 ├── static/
@@ -39,6 +41,7 @@ heimviti/
     ├── test_atb.py
     ├── test_tibber.py
     ├── test_audi.py
+    ├── test_calendar.py
     └── test_main.py
 ```
 
@@ -54,15 +57,19 @@ All sensitive values are kept **out of the repository** and loaded at runtime:
 | `HOME_STOP_ID` | NSR stop-place ID for your nearest bus stop (e.g. `NSR:StopPlace:43975` for Trollahaugen 10, Trondheim) |
 | `YR_LAT` | Latitude of your location (e.g. `63.4305`) |
 | `YR_LON` | Longitude of your location (e.g. `10.3951`) |
+| `HOME_LAT` | Latitude of your home, used to determine whether the car is home (e.g. `63.4305`) |
+| `HOME_LON` | Longitude of your home (e.g. `10.3951`) |
+| `GOOGLE_API_KEY` | Google Calendar API key – create at [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials) (enable the Calendar API first) |
+| `CALENDAR_IDS` | Comma-separated Google Calendar IDs to display (up to 5); find each ID under *Calendar settings → Integrate calendar* |
 
 ### Production – Google Cloud Secret Manager
 
 Each variable above is stored as a **Secret Manager secret** in your GCP
 project.  The app fetches them at startup via the Secret Manager API.
 
-1. Enable the Secret Manager API:
+1. Enable the Secret Manager API and the Google Calendar API:
    ```bash
-   gcloud services enable secretmanager.googleapis.com
+   gcloud services enable secretmanager.googleapis.com calendar-json.googleapis.com
    ```
 
 2. Create each secret (repeat for every variable):
@@ -73,7 +80,22 @@ project.  The app fetches them at startup via the Secret Manager API.
    echo -n "you@example.com" | \
      gcloud secrets create AUDI_USERNAME --data-file=-
 
-   # … and so on for AUDI_PASSWORD, HOME_STOP_ID, YR_LAT, YR_LON
+   echo -n "your-audi-password" | \
+     gcloud secrets create AUDI_PASSWORD --data-file=-
+
+   echo -n "NSR:StopPlace:43975" | \
+     gcloud secrets create HOME_STOP_ID --data-file=-
+
+   echo -n "63.4305" | gcloud secrets create YR_LAT --data-file=-
+   echo -n "10.3951" | gcloud secrets create YR_LON --data-file=-
+   echo -n "63.4305" | gcloud secrets create HOME_LAT --data-file=-
+   echo -n "10.3951" | gcloud secrets create HOME_LON --data-file=-
+
+   echo -n "your-google-api-key" | \
+     gcloud secrets create GOOGLE_API_KEY --data-file=-
+
+   echo -n "cal1@group.calendar.google.com,cal2@group.calendar.google.com" | \
+     gcloud secrets create CALENDAR_IDS --data-file=-
    ```
 
 3. Grant the App Engine default service account read access:
@@ -81,17 +103,12 @@ project.  The app fetches them at startup via the Secret Manager API.
    PROJECT=$(gcloud config get-value project)
    SA="${PROJECT}@appspot.gserviceaccount.com"
 
-   for SECRET in TIBBER_TOKEN AUDI_USERNAME AUDI_PASSWORD HOME_STOP_ID YR_LAT YR_LON; do
+   for SECRET in TIBBER_TOKEN AUDI_USERNAME AUDI_PASSWORD HOME_STOP_ID \
+                 YR_LAT YR_LON HOME_LAT HOME_LON GOOGLE_API_KEY CALENDAR_IDS; do
      gcloud secrets add-iam-policy-binding "$SECRET" \
        --member="serviceAccount:${SA}" \
        --role="roles/secretmanager.secretAccessor"
    done
-   ```
-
-4. Set the `GOOGLE_CLOUD_PROJECT` value in `app.yaml`:
-   ```yaml
-   env_variables:
-     GOOGLE_CLOUD_PROJECT: "your-gcp-project-id"
    ```
 
 ### Local development – `.env` file
