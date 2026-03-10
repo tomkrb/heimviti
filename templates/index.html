@@ -121,18 +121,23 @@
       try {
         const { ok, data, error } = await fetchJSON("/api/energy");
         if (!ok) { setBody("energy-body", errorHTML(error)); return; }
-        if (data.error) { setBody("energy-body", errorHTML(data.error)); return; }
-        const cp = data.current_price ?? {};
-        const consumption = data.consumption_24h ?? [];
-        const totalKwh = consumption.reduce((s, n) => s + (n.consumption ?? 0), 0);
-        const totalCost = consumption.reduce((s, n) => s + (n.cost ?? 0), 0);
-        setBody("energy-body", `
-          <table>
-            <tr><td>Current price</td><td>${esc(cp.total)} ${esc(cp.currency)}/kWh</td></tr>
-            <tr><td>Price level</td><td>${esc(cp.level)}</td></tr>
-            <tr><td>Last 24 h usage</td><td>${totalKwh.toFixed(2)} kWh</td></tr>
-            <tr><td>Last 24 h cost</td><td>${totalCost.toFixed(2)} ${esc(cp.currency)}</td></tr>
-          </table>`);
+        if (data && data.error) { setBody("energy-body", errorHTML(data.error)); return; }
+        if (!Array.isArray(data) || data.length === 0) { setBody("energy-body", "<p>No homes found.</p>"); return; }
+        const sections = data.map(home => {
+          const cp = home.current_price ?? {};
+          const consumption = home.consumption_24h ?? [];
+          const totalKwh = consumption.reduce((s, n) => s + (n.consumption ?? 0), 0);
+          const totalCost = consumption.reduce((s, n) => s + (n.cost ?? 0), 0);
+          return `
+            <h3>${esc(home.label)}</h3>
+            <table>
+              <tr><td>Current price</td><td>${esc(cp.total)} ${esc(cp.currency)}/kWh</td></tr>
+              <tr><td>Price level</td><td>${esc(cp.level)}</td></tr>
+              <tr><td>Last 24 h usage</td><td>${totalKwh.toFixed(2)} kWh</td></tr>
+              <tr><td>Last 24 h cost</td><td>${totalCost.toFixed(2)} ${esc(cp.currency)}</td></tr>
+            </table>`;
+        }).join("");
+        setBody("energy-body", sections);
       } catch (e) { setBody("energy-body", errorHTML(e.message)); }
     }
 
