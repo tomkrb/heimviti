@@ -109,6 +109,16 @@ class TestAtbService:
         assert result == []
 
     @patch("services.atb.requests.post")
+    def test_empty_result_is_cached(self, mock_post):
+        """Empty departure list must be cached so the API is not hit every call."""
+        mock_post.return_value = _make_response({"data": {"stopPlace": None}})
+
+        self.svc.get_departures()
+        self.svc.get_departures()
+
+        assert mock_post.call_count == 1
+
+    @patch("services.atb.requests.post")
     def test_et_client_name_header_sent(self, mock_post):
         mock_post.return_value = _make_response(SAMPLE_RESPONSE)
 

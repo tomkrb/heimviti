@@ -45,7 +45,7 @@ class AtbService:
     def __init__(self, stop_id: str, number_of_departures: int = 5) -> None:
         self._stop_id = stop_id
         self._n = number_of_departures
-        self._cache: list[dict[str, Any]] = []
+        self._cache: list[dict[str, Any]] | None = None
         self._cache_ts: float = 0.0
 
     # ------------------------------------------------------------------
@@ -55,7 +55,7 @@ class AtbService:
     def get_departures(self) -> list[dict[str, Any]]:
         """Return a list of upcoming departures (simplified dicts)."""
         now = time.monotonic()
-        if self._cache and (now - self._cache_ts) < _CACHE_TTL:
+        if self._cache is not None and (now - self._cache_ts) < _CACHE_TTL:
             return self._cache
 
         payload = {

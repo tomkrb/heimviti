@@ -54,7 +54,7 @@ class TibberService:
 
     def __init__(self, token: str) -> None:
         self._token = token
-        self._cache: dict[str, Any] = {}
+        self._cache: dict[str, Any] | None = None
         self._cache_ts: float = 0.0
 
     # ------------------------------------------------------------------
@@ -64,7 +64,7 @@ class TibberService:
     def get_status(self) -> dict[str, Any]:
         """Return price and consumption info for the first registered home."""
         now = time.monotonic()
-        if self._cache and (now - self._cache_ts) < _CACHE_TTL:
+        if self._cache is not None and (now - self._cache_ts) < _CACHE_TTL:
             return self._cache
 
         if not self._token:
@@ -84,7 +84,9 @@ class TibberService:
             raw.get("data", {}).get("viewer", {}).get("homes", [])
         )
         if not homes:
-            return {}
+            self._cache = {}
+            self._cache_ts = now
+            return self._cache
 
         home = homes[0]
         price_info = (

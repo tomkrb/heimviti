@@ -123,3 +123,15 @@ class TestTibberService:
         result = self.svc.get_status()
 
         assert result == {}
+
+    @patch("services.tibber.requests.post")
+    def test_empty_homes_result_is_cached(self, mock_post):
+        """Empty homes result must be cached so the API is not hit every call."""
+        mock_post.return_value = _make_response(
+            {"data": {"viewer": {"homes": []}}}
+        )
+
+        self.svc.get_status()
+        self.svc.get_status()
+
+        assert mock_post.call_count == 1
