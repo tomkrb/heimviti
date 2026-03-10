@@ -494,10 +494,13 @@ class AudiService:
         ).hexdigest()
         return "v1:01da27b0:" + xqmauth_val
 
-    def _get_first_vin_graphql(self) -> str:
+    def _get_first_vin_graphql(self, retried: bool = False) -> str:
         audi_token = self._token_bundle.get("audi", {})
         access = audi_token.get("access_token")
         if not access:
+            if not retried:
+                self._login_pkce()
+                return self._get_first_vin_graphql(retried=True)
             raise requests.HTTPError("No audi token available for GraphQL")
         language = self._language or "de"
         graphql_url = (
@@ -520,6 +523,10 @@ class AudiService:
             "query": "query vehicleList {\n userVehicles {\n vin\n mappingVin\n vehicle { core { modelYear\n }\n media { shortName\n longName }\n }\n csid\n commissionNumber\n type\n devicePlatform\n mbbConnect\n userRole {\n role\n }\n vehicle {\n classification {\n driveTrain\n }\n }\n nickname\n }\n}"
         }
         resp = requests.post(graphql_url, headers=headers, data=json.dumps(query), timeout=20)
+        if resp.status_code in (401, 403) and not retried:
+            # Token likely expired or invalid — refresh and retry once
+            self._login_pkce()
+            return self._get_first_vin_graphql(retried=True)
         resp.raise_for_status()
         payload = resp.json()
         if "errors" in payload:
