@@ -87,6 +87,25 @@ tr.cancelled td { text-decoration: line-through; color: #64748b; }
 
 .vin { color: #64748b; font-size: 0.8rem; margin-bottom: 0.75rem; }
 
+.raw-json {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.raw-json summary { cursor: pointer; }
+
+.raw-json pre {
+  margin-top: 0.5rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  max-height: 280px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
 /* Responsive tweaks */
 @media (max-width: 480px) {
   header h1 { font-size: 1.2rem; }

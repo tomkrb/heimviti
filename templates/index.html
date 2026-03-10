@@ -139,33 +139,43 @@
     // ---------------------------------------------------------------------------
     // Car
     // ---------------------------------------------------------------------------
+    function safeVal(v) {
+      if (v === undefined || v === null || v === "") return "–";
+      return v;
+    }
+
     async function loadCar() {
       try {
         const { ok, data, error } = await fetchJSON("/api/car");
         if (!ok) { setBody("car-body", errorHTML(error)); return; }
         if (data.error) { setBody("car-body", errorHTML(data.error)); return; }
 
-        // Show VIN + a curated subset of known Audi field IDs
-        const knownFields = {
-          "0x0301030005": "Odometer",
-          "0x030103000A": "Range",
-          "0x0301030002": "Fuel level",
-          "0x0301010001": "Parking brake",
-          "0x0301040001": "Doors",
-          "0x030104000A": "Trunk",
-          "0x030104000D": "Hood",
-          "0x0301050001": "Windows",
-          "0x0301060001": "Lights",
-        };
+        const access = data["access.accessStatus"] || {};
+        const chargingStatus = data["charging.chargingStatus"] || {};
+        const batteryStatus = data["charging.batteryStatus"] || {};
+        const chargingSettings = data["charging.chargingSettings"] || {};
+        const plugStatus = data["charging.plugStatus"] || {};
 
-        const rows = Object.entries(knownFields)
-          .filter(([id]) => data[id] !== undefined)
-          .map(([id, label]) => `<tr><td>${esc(label)}</td><td>${esc(data[id])}</td></tr>`)
-          .join("");
+        const rows = [
+          ["Overall status", safeVal(access.overallStatus)],
+          ["Door lock", safeVal(access.doorLockStatus)],
+          ["Battery", batteryStatus.currentSOC_pct !== undefined ? `${batteryStatus.currentSOC_pct} %` : "–"],
+          ["Electric range", batteryStatus.cruisingRangeElectric_km !== undefined ? `${batteryStatus.cruisingRangeElectric_km} km` : "–"],
+          ["Charging state", safeVal(chargingStatus.chargingState)],
+          ["Charge mode", safeVal(chargingStatus.chargeMode)],
+          ["Charge power", chargingStatus.chargePower_kW !== undefined ? `${chargingStatus.chargePower_kW} kW` : "–"],
+          ["Plug connection", safeVal(plugStatus.plugConnectionState)],
+          ["Plug lock", safeVal(plugStatus.plugLockState)],
+          ["Target SOC", chargingSettings.targetSOC_pct !== undefined ? `${chargingSettings.targetSOC_pct} %` : "–"],
+        ].map(([label, value]) => `<tr><td>${esc(label)}</td><td>${esc(value)}</td></tr>`).join("");
+
+        const rawJson = esc(JSON.stringify(data, null, 2));
 
         setBody("car-body", `
           <p class="vin">VIN: ${esc(data.vin)}</p>
-          <table>${rows || "<tr><td colspan='2'>No data available</td></tr>"}</table>`);
+          <table>${rows}</table>
+          <details class="raw-json"><summary>Raw data</summary><pre>${rawJson}</pre></details>
+        `);
       } catch (e) { setBody("car-body", errorHTML(e.message)); }
     }
 
